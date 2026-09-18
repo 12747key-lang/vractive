@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <title>VR активация · Meta Quest</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; }
+    body { background: #0b0e14; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+    .card { max-width: 460px; width: 100%; background: #141a24; border-radius: 40px; padding: 28px 22px 35px; box-shadow: 0 20px 40px rgba(0,0,0,0.7); border: 1px solid #2a3340; color: #edf2f7; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .header h1 { font-size: 22px; font-weight: 600; background: linear-gradient(135deg, #b7bfff, #7a8cff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .badge { background: #2a3340; padding: 8px 14px; border-radius: 60px; font-size: 13px; font-weight: 500; color: #b3c7f0; border: 1px solid #3f4a5a; display: flex; align-items: center; gap: 6px; }
+    .badge i { color: #7a8cff; font-size: 12px; }
+    .account-bar { background: #1f2836; border-radius: 60px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border: 1px solid #2e3a48; flex-wrap: wrap; gap: 10px; }
+    .account-info { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 40px; height: 40px; background: #2f3d51; border-radius: 40px; display: flex; align-items: center; justify-content: center; color: #b7cbff; font-size: 18px; border: 2px solid #4f6280; }
+    .account-name { font-weight: 500; font-size: 15px; }
+    .account-name small { display: block; font-weight: 400; font-size: 12px; color: #8896b0; margin-top: 2px; }
+    .balance { background: #0f1620; padding: 6px 16px 6px 14px; border-radius: 40px; font-size: 14px; border: 1px solid #38475a; display: flex; align-items: center; gap: 8px; }
+    .balance i { color: #f5b342; }
+    
+    .btn-chat { display: flex; align-items: center; justify-content: center; gap: 14px; background: #2d3e5a; border: none; width: 100%; padding: 18px 10px; border-radius: 60px; font-weight: 600; font-size: 18px; color: white; border: 1px solid #4a6180; background: linear-gradient(145deg, #2d405c, #1f2e44); cursor: pointer; box-shadow: 0 4px 0 #0f1722; transition: 0.1s; text-decoration: none; }
+    .btn-chat i { font-size: 22px; color: #8aa9ff; }
+    .btn-chat:hover { background: #3c5272; border-color: #7a99d9; }
+    .btn-chat:active { transform: translateY(3px); box-shadow: 0 1px 0 #0f1722; }
+    .btn-chat.clicked { transform: scale(0.96); }
+
+    .chat-instruction {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: #101a26;
+      border-radius: 30px;
+      border: 1px solid #2b3b4f;
+      font-size: 13.5px;
+      color: #d3def5;
+      text-align: center;
+      line-height: 1.4;
+      flex-wrap: wrap;
+    }
+    .chat-instruction .step {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1b2838;
+      padding: 4px 12px;
+      border-radius: 40px;
+      border: 1px solid #3f5670;
+      white-space: nowrap;
+    }
+    .chat-instruction .step i { color: #6d8cff; }
+    .chat-instruction .arrow { color: #6e7f9b; }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+    .modal-overlay.active { display: flex; }
+
+    /* === СТИЛИ АВТОРИЗАЦИИ === */
+    .auth-modal { background: #141a24; border-radius: 32px; max-width: 420px; width: 100%; padding: 28px 24px 32px; border: 1px solid #2a3340; box-shadow: 0 20px 60px rgba(0,0,0,0.9); position: relative; }
+    .auth-modal .close-btn { position: absolute; top: 14px; right: 18px; background: none; border: none; color: #8896b0; font-size: 26px; cursor: pointer; transition: 0.2s; }
+    .auth-modal .close-btn:hover { color: #edf2f7; transform: rotate(90deg); }
+    .auth-tabs { display: flex; gap: 8px; margin-bottom: 22px; background: #0f1620; padding: 5px; border-radius: 60px; border: 1px solid #2a3340; }
+    .auth-tab { flex: 1; padding: 10px; border-radius: 60px; background: transparent; border: none; color: #8896b0; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; }
+    .auth-tab.active { background: #2d405c; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .auth-form { display: none; flex-direction: column; gap: 14px; }
+    .auth-form.active { display: flex; }
+    .auth-form label { font-size: 13px; color: #8896b0; margin-bottom: -8px; margin-left: 8px; }
+    .auth-form input { background: #0f1620; border: 1px solid #2d3a4a; border-radius: 30px; padding: 14px 18px; color: #edf2f7; outline: none; font-size: 15px; width: 100%; }
+    .auth-form input:focus { border-color: #6d8cff; }
+    .auth-form button { background: linear-gradient(145deg, #2d405c, #1f2e44); border: 1px solid #4a6180; border-radius: 60px; padding: 16px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 6px; box-shadow: 0 4px 0 #0f1722; transition: 0.1s; }
+    .auth-form button:hover { background: #3c5272; }
+    .auth-form button:active { transform: translateY(3px); box-shadow: 0 1px 0 #0f1722; }
+    .auth-error { color: #ff6b6b; font-size: 13px; text-align: center; min-height: 18px; }
+    .auth-hint { font-size: 12px; color: #6e7f9b; text-align: center; margin-top: 8px; }
+    .user-bar { display: flex; align-items: center; gap: 10px; }
+    .logout-btn { background: #2a1f28; border: 1px solid #5a3a4a; border-radius: 40px; padding: 6px 14px; color: #ff9a9a; font-size: 12px; cursor: pointer; transition: 0.2s; }
+    .logout-btn:hover { background: #3a2a35; }
+
+    .combo-grid { display: flex; flex-direction: column; gap: 16px; margin: 16px 0; }
+    .combo-item { background: #1a232f; border-radius: 28px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #2d3a4a; flex-wrap: wrap; }
+    .combo-item.combo-1 { border-left: 5px solid #6d8cff; }
+    .combo-item.combo-2 { border-left: 5px solid #ffb347; background: #1f2a38; }
+    .combo-desc { display: flex; flex-direction: column; gap: 4px; }
+    .combo-title { font-weight: 600; font-size: 18px; display: flex; align-items: center; gap: 12px; }
+    .combo-title span { background: #293545; padding: 2px 12px; border-radius: 40px; font-size: 13px; font-weight: 400; color: #bcc9e6; }
+    .combo-features { font-size: 14px; color: #b0c0db; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+    .combo-features i { margin-right: 4px; color: #7f96d9; width: 16px; }
+    .combo-price { font-weight: 700; font-size: 24px; background: #0d141e; padding: 6px 16px; border-radius: 60px; border: 1px solid #3b4a5e; white-space: nowrap; }
+    .combo-price small { font-weight: 400; font-size: 14px; color: #99aac9; margin-right: 2px; }
+    .combo-extra { margin-top: 6px; font-size: 13px; background: #1d2838; padding: 4px 14px; border-radius: 60px; display: inline-block; border: 1px solid #3e5068; color: #d3dff5; }
+    .combo-extra i { color: #ffb347; margin-right: 6px; }
+
+    .footnote { text-align: center; font-size: 13px; color: #6e7f9b; margin-top: 22px; border-top: 1px solid #26313f; padding-top: 18px; display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+    .footnote i { color: #6d8cff; margin-right: 4px; }
+    .footnote a { color: #9ab0f0; text-decoration: none; border-bottom: 1px dashed #3f5270; }
+    .system-note { background: #101a26; border-radius: 30px; padding: 14px 18px; margin: 12px 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border: 1px solid #2b3b4f; font-size: 14px; }
+    .system-note i { color: #ffb347; font-size: 20px; }
+    .system-note strong { color: #d2e0ff; }
+    .badge-seller { background: #1b334d; border-radius: 60px; padding: 4px 14px; font-size: 12px; border: 1px solid #4b6c94; color: #baceff; margin-left: auto; }
+    .schedule-badge { background: #1b2838; border-radius: 60px; padding: 10px 20px; border: 1px solid #3f5670; font-size: 14px; color: #d3def5; margin: 10px auto 0; display: inline-flex; flex-direction: column; align-items: center; gap: 4px; line-height: 1.4; }
+    .schedule-badge i { color: #f5b342; margin-right: 6px; }
+    .schedule-badge .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .notification-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 350px; width: 100%; }
+    .notification { background: #1f2a38; border-left: 4px solid #6d8cff; padding: 14px 18px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); color: #edf2f7; animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 12px; border: 1px solid #3a4a60; }
+    .notification.error { border-left-color: #ff6b6b; }
+    .notification.success { border-left-color: #4caf9e; }
+    .notification i { font-size: 20px; color: #6d8cff; }
+    .notification.error i { color: #ff6b6b; }
+    .notification.success i { color: #4caf9e; }
+    .notification .close { margin-left: auto; cursor: pointer; opacity: 0.6; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @media (max-width: 420px) { .card { padding: 20px 16px; } .combo-item { flex-direction: column; align-items: flex-start; gap: 12px; } .combo-price { align-self: flex-start; } .account-bar { flex-direction: column; align-items: stretch; } .balance { align-self: flex-start; } .notification-container { max-width: 90%; right: 10px; } }
+  </style>
+</head>
+<body>
+  <div class="notification-container" id="notifications"></div>
+  
+  <div class="card">
+    <div class="header">
+      <h1><i class="fas fa-vr-cardboard" style="margin-right: 8px; color: #6d8cff;"></i> VR Activate</h1>
+      <div class="badge"><i class="fas fa-shield-alt"></i> Meta Quest</div>
+    </div>
+
+    <!-- Панель аккаунта -->
+    <div class="account-bar" id="accountBar">
+      <div class="account-info">
+        <div class="avatar"><i class="fas fa-user-astronaut"></i></div>
+        <div class="account-name" id="accountName">
+          Гость
+          <small><i class="fas fa-id-badge"></i> не авторизован</small>
+        </div>
+      </div>
+      <div id="accountAction">
+        <button class="logout-btn" id="loginBtn" style="background:#1b334d; border-color:#4b6c94; color:#baceff;"><i class="fas fa-sign-in-alt"></i> Войти</button>
+      </div>
+    </div>
+
+    <div class="system-note">
+      <i class="fas fa-store-alt"></i>
+      <span><strong>Только я — продавец</strong></span>
+      <span class="badge-seller"><i class="fas fa-crown"></i> Владелец</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px; margin: 10px 0 4px;">
+      <i class="fas fa-tags" style="color: #7f96d9;"></i>
+      <span style="font-weight: 500; color: #b3c7f0;">Прайс-лист</span>
+      <span style="background: #1e2a3a; padding: 0 12px; border-radius: 40px; font-size: 12px; border: 1px solid #384b62;">актуально</span>
+    </div>
+
+    <div class="combo-grid">
+      <div class="combo-item combo-1">
+        <div class="combo-desc">
+          <div class="combo-title"><span>⚡</span> Комбо 1 <span>базовый</span></div>
+          <div class="combo-features"><span><i class="fas fa-download"></i> скачивание игр с приложением</span><span><i class="fas fa-rocket"></i> активация шлема</span></div>
+        </div>
+        <div class="combo-price"><small>₽</small>2000</div>
+      </div>
+      <div class="combo-item combo-2">
+        <div class="combo-desc">
+          <div class="combo-title"><span>🔥</span> Комбо 2 <span>премиум</span></div>
+          <div class="combo-features"><span><i class="fas fa-download"></i> скачивание игр с приложением</span><span><i class="fas fa-rocket"></i> активация шлема</span><span><i class="fas fa-code"></i> режим разработчика</span></div>
+          <div class="combo-extra" style="margin-top: 8px; background: #1f2e42; border-color: #4d6b8a;"><i class="fas fa-laptop"></i> обязателен ноутбук или компьютер с раздачей интернета</div>
+          <div class="combo-extra" style="margin-top: 4px;"><i class="fas fa-plus-circle"></i> при покупке комбо 2 за доп. плату 3000 ₽ · скачивание более 1000 игр</div>
+        </div>
+        <div class="combo-price"><small>₽</small>4000</div>
+      </div>
+    </div>
+
+    <div style="margin: 16px 0 20px;">
+      <!-- Кнопка ведёт в ВК-сообщество -->
+      <a class="btn-chat" id="openChatBtn" href="https://vk.ru/club241158327" target="_blank" rel="noopener">
+        <i class="fab fa-vk"></i> Чат с продавцом
+        <i class="fas fa-arrow-right" style="font-size: 16px; opacity: 0.8;"></i>
+      </a>
+
+      <!-- Инструкция под кнопкой -->
+      <div class="chat-instruction">
+        <span class="step"><i class="fas fa-user-plus"></i> Нажмите «Подписаться»</span>
+        <span class="arrow"><i class="fas fa-arrow-right"></i></span>
+        <span class="step"><i class="fas fa-comment-dots"></i> Затем «Чат»</span>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 12px; font-size: 13px; color: #8396b5;">
+        <span><i class="fas fa-clock"></i> ответ в течение дня</span>
+        <span><i class="fas fa-lock"></i> сделка защищена</span>
+      </div>
+      <div style="display: flex; justify-content: center; margin-top: 6px;">
+        <div class="schedule-badge">
+          <span class="row"><i class="fas fa-calendar-alt"></i> Сентябрь–май: только по субботам</span>
+          <span class="row"><i class="fas fa-sun"></i> Лето (июнь–август): ежедневно</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footnote">
+      <span><i class="fab fa-vk"></i> <a href="https://vk.ru/club241158327" target="_blank">vk.ru/club241158327</a></span>
+      <span><i class="fas fa-headset"></i> активация Meta Quest</span>
+      <span><i class="fas fa-gamepad"></i> 1000+ игр</span>
+    </div>
+    <div style="margin-top: 16px; background: #101b28; border-radius: 60px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; border: 1px solid #2a3f55; justify-content: center; font-size: 13px;">
+      <i class="fas fa-user-tie" style="color: #8aa9ff;"></i>
+      <span>Продавец: <strong style="color: #d2e0ff;">@vr_activator</strong> (это я)</span>
+      <i class="fas fa-check-circle" style="color: #4caf9e;"></i>
+    </div>
+    <div style="margin-top: 14px; font-size: 12px; color: #4d617d; text-align: center; border-top: 1px solid #1f2b39; padding-top: 16px;">
+      <i class="fas fa-shield-alt"></i> Система аккаунтов · только продавец <strong style="color: #8099cc;">VR-активатор</strong> · 
+      <span style="background: #1f2b3a; padding: 0 10px; border-radius: 40px;">без посредников</span>
+    </div>
+  </div>
+
+  <!-- Модальное окно авторизации -->
+  <div class="modal-overlay" id="authModal">
+    <div class="auth-modal">
+      <button class="close-btn" id="closeAuthBtn">&times;</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login"><i class="fas fa-sign-in-alt"></i> Вход</button>
+        <button class="auth-tab" data-tab="register"><i class="fas fa-user-plus"></i> Регистрация</button>
+      </div>
+
+      <!-- Форма входа -->
+      <form class="auth-form active" id="loginForm">
+        <label for="loginUsername">Логин</label>
+        <input type="text" id="loginUsername" placeholder="Введите логин" autocomplete="username" />
+        <label for="loginPassword">Пароль</label>
+        <input type="password" id="loginPassword" placeholder="Введите пароль" autocomplete="current-password" />
+        <div class="auth-error" id="loginError"></div>
+        <button type="submit"><i class="fas fa-door-open"></i> Войти</button>
+        <div class="auth-hint">Нет аккаунта? <a href="#" data-tab="register" style="color:#9ab0f0;">Зарегистрируйтесь</a></div>
+      </form>
+
+      <!-- Форма регистрации -->
+      <form class="auth-form" id="registerForm">
+        <label for="regUsername">Логин</label>
+        <input type="text" id="regUsername" placeholder="Придумайте логин" autocomplete="username" />
+        <label for="regPassword">Пароль</label>
+        <input type="password" id="regPassword" placeholder="Придумайте пароль" autocomplete="new-password" />
+        <label for="regPassword2">Повторите пароль</label>
+        <input type="password" id="regPassword2" placeholder="Повторите пароль" autocomplete="new-password" />
+        <div class="auth-error" id="registerError"></div>
+        <button type="submit"><i class="fas fa-user-plus"></i> Зарегистрироваться</button>
+        <div class="auth-hint">Уже есть аккаунт? <a href="#" data-tab="login" style="color:#9ab0f0;">Войдите</a></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // === УВЕДОМЛЕНИЯ ===
+    function showNotification(message, type = 'info') {
+      const container = document.getElementById('notifications');
+      const notif = document.createElement('div');
+      notif.className = `notification ${type}`;
+      const icons = { info: 'fa-info-circle', error: 'fa-exclamation-triangle', success: 'fa-check-circle' };
+      notif.innerHTML = `
+        <i class="fas ${icons[type] || icons.info}"></i>
+        <span>${message}</span>
+        <span class="close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></span>
+      `;
+      container.appendChild(notif);
+      setTimeout(() => { if (notif.parentElement) notif.remove(); }, 5000);
+    }
+
+    // === SHA-256 ===
+    async function sha256(str) {
+      const buf = new TextEncoder().encode(str);
+      const hash = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // === ИНИЦИАЛИЗАЦИЯ АККАУНТА CREATOR ===
+    async function initCreatorAccount() {
+      if (!localStorage.getItem('creator_hash')) {
+        const hash = await sha256('delavuha2014');
+        localStorage.setItem('creator_hash', hash);
+        console.log('Создан аккаунт creator с хэшем:', hash);
+      }
+    }
+
+    // === РАБОТА С ПОЛЬЗОВАТЕЛЯМИ ===
+    const USERS_KEY = 'vr_users';
+    const SESSION_KEY = 'vr_session';
+
+    function getUsers() {
+      try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; }
+      catch { return {}; }
+    }
+    function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+    function getSession() { return localStorage.getItem(SESSION_KEY); }
+    function setSession(username) { localStorage.setItem(SESSION_KEY, username); }
+    function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+    // === ОБНОВЛЕНИЕ UI ===
+    function updateAuthUI() {
+      const session = getSession();
+      const accountName = document.getElementById('accountName');
+      const accountAction = document.getElementById('accountAction');
+
+      if (session) {
+        accountName.innerHTML = `${session} <i class="fas fa-check-circle" style="color: #4caf9e;"></i><small><i class="fas fa-id-badge"></i> авторизован</small>`;
+        accountAction.innerHTML = `<button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выйти</button>`;
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+          clearSession();
+          updateAuthUI();
+          showNotification('Вы вышли из аккаунта', 'info');
+        });
+      } else {
+        accountName.innerHTML = `Гость<small><i class="fas fa-id-badge"></i> не авторизован</small>`;
+        accountAction.innerHTML = `<button class="logout-btn" id="loginBtn" style="background:#1b334d; border-color:#4b6c94; color:#baceff;"><i class="fas fa-sign-in-alt"></i> Войти</button>`;
+        document.getElementById('loginBtn').addEventListener('click', () => openAuthModal('login'));
+      }
+    }
+
+    // === МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ ===
+    const authModal = document.getElementById('authModal');
+    const closeAuthBtn = document.getElementById('closeAuthBtn');
+    const authTabs = document.querySelectorAll('.auth-tab');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+
+    function openAuthModal(tab = 'login') {
+      authModal.classList.add('active');
+      switchAuthTab(tab);
+    }
+    function closeAuthModal() {
+      authModal.classList.remove('active');
+      document.getElementById('loginError').textContent = '';
+      document.getElementById('registerError').textContent = '';
+    }
+    function switchAuthTab(tab) {
+      authTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+      loginForm.classList.toggle('active', tab === 'login');
+      registerForm.classList.toggle('active', tab === 'register');
+    }
+
+    authTabs.forEach(tab => tab.addEventListener('click', () => switchAuthTab(tab.dataset.tab)));
+    document.querySelectorAll('[data-tab]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchAuthTab(link.dataset.tab);
+      });
+    });
+    closeAuthBtn.addEventListener('click', closeAuthModal);
+    authModal.addEventListener('click', (e) => { if (e.target === authModal) closeAuthModal(); });
+
+    // === ВХОД ===
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+      errorEl.textContent = '';
+
+      if (!username || !password) { errorEl.textContent = 'Заполните все поля'; return; }
+
+      if (username === 'creator') {
+        const creatorHash = localStorage.getItem('creator_hash');
+        const inputHash = await sha256(password);
+        if (inputHash === creatorHash) {
+          setSession('creator');
+          updateAuthUI();
+          closeAuthModal();
+          showNotification('✅ Добро пожаловать, creator!', 'success');
+          return;
+        } else {
+          errorEl.textContent = 'Неверный пароль для creator';
+          return;
+        }
+      }
+
+      const users = getUsers();
+      if (!users[username]) { errorEl.textContent = 'Пользователь не найден'; return; }
+      const inputHash = await sha256(password);
+      if (users[username].passwordHash === inputHash) {
+        setSession(username);
+        updateAuthUI();
+        closeAuthModal();
+        showNotification(`✅ Добро пожаловать, ${username}!`, 'success');
+      } else {
+        errorEl.textContent = 'Неверный пароль';
+      }
+    });
+
+    // === РЕГИСТРАЦИЯ ===
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('regUsername').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const password2 = document.getElementById('regPassword2').value;
+      const errorEl = document.getElementById('registerError');
+      errorEl.textContent = '';
+
+      if (!username || !password || !password2) { errorEl.textContent = 'Заполните все поля'; return; }
+      if (username.length < 3) { errorEl.textContent = 'Логин не менее 3 символов'; return; }
+      if (password.length < 4) { errorEl.textContent = 'Пароль не менее 4 символов'; return; }
+      if (password !== password2) { errorEl.textContent = 'Пароли не совпадают'; return; }
+      if (username === 'creator') { errorEl.textContent = 'Этот логин занят'; return; }
+
+      const users = getUsers();
+      if (users[username]) { errorEl.textContent = 'Логин уже существует'; return; }
+
+      const passwordHash = await sha256(password);
+      users[username] = { passwordHash, createdAt: Date.now() };
+      saveUsers(users);
+      setSession(username);
+      updateAuthUI();
+      closeAuthModal();
+      showNotification(`🎉 Аккаунт ${username} создан!`, 'success');
+    });
+
+    // === КНОПКА ЧАТА: проверка авторизации и переход в ВК ===
+    const openChatBtn = document.getElementById('openChatBtn');
+    const VK_CHAT_URL = 'https://vk.ru/club241158327';
+
+    openChatBtn.addEventListener('click', function(e) {
+      if (!getSession()) {
+        e.preventDefault();
+        showNotification('Сначала войдите или зарегистрируйтесь', 'error');
+        openAuthModal('login');
+        return;
+      }
+      // Авторизован — переходим в ВК
+      this.classList.add('clicked');
+      setTimeout(() => this.classList.remove('clicked'), 200);
+      showNotification('Открываю сообщество ВК. Нажмите «Подписаться», затем «Чат»', 'info');
+      // Переход выполнится автоматически по href
+    });
+
+    // === ЗАПУСК ===
+    (async function start() {
+      await initCreatorAccount();
+      updateAuthUI();
+
+      setTimeout(() => {
+        const session = getSession();
+        if (session) {
+          showNotification(`👋 Вы вошли как ${session}`, 'info');
+        } else {
+          showNotification('👋 Войдите, чтобы перейти в чат с продавцом', 'info');
+        }
+      }, 500);
+    })();
+  </script>
+</body>
+</html>
